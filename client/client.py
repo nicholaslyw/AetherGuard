@@ -167,7 +167,7 @@ def do_download():
         dek,
     )
 
-    out_path = os.path.join(DOWNLOADS_DIR, data["filename"])
+    out_path = os.path.join(DOWNLOADS_DIR, os.path.basename(data["filename"]))
     with open(out_path, "wb") as f:
         f.write(plaintext)
 
@@ -221,6 +221,9 @@ def do_revoke():
 
 
 def main():
+    os.makedirs(KEYS_DIR, exist_ok=True)
+    os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
     print("=" * 50)
     print("   Secure File Sharing Platform")
     print("=" * 50)
@@ -255,8 +258,9 @@ def main():
             elif choice == "5":
                 do_revoke()
             elif choice == "6":
-                globals()["current_user"] = None
-                globals()["current_password"] = None
+                global current_user, current_password
+                current_user = None
+                current_password = None
                 print("  Logged out.")
             elif choice == "7":
                 print("  Goodbye.")
