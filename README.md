@@ -14,7 +14,7 @@ A secure file-sharing platform using end-to-end hybrid encryption. Files are enc
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/AetherGuard.git
+git clone https://github.com/nicholaslyw/AetherGuard.git
 cd AetherGuard
 ```
 
