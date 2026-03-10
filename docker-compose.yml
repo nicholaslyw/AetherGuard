@@ -11,21 +11,9 @@ services:
     networks:
       - securenet
 
-  client:
-    build: ./client
-    stdin_open: true
-    tty: true
-    volumes:
-      - client-keys:/app/keys
-    networks:
-      - securenet
-    depends_on:
-      - server
-
 volumes:
   server-data:
   server-db:
-  client-keys:
 
 networks:
   securenet:
