@@ -12,9 +12,9 @@ from crypto_utils import (
     unwrap_dek,
 )
 
-SERVER_URL = "http://server:5000"
-KEYS_DIR = "/app/keys"
-DOWNLOADS_DIR = "/app/downloads"
+SERVER_URL = "http://localhost:5000"
+KEYS_DIR = "keys"
+DOWNLOADS_DIR = "downloads"
 
 # Session state
 current_user = None
