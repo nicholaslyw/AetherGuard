@@ -36,29 +36,10 @@ Open a **new terminal** and navigate to the client directory:
 cd client
 ```
 
-Create and activate a virtual environment:
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
 Install dependencies:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Create the local directories for keys and downloads:
-
-```bash
-mkdir keys
-mkdir downloads
 ```
 
 ### 4. Run the client
@@ -66,6 +47,8 @@ mkdir downloads
 ```bash
 python client.py
 ```
+
+The client will automatically create the `keys/` and `downloads/` directories on first run.
 
 ---
 
