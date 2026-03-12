@@ -176,7 +176,7 @@
     /* ── File Table ──────────────────────────────────────── */
     .table-header {
       display: grid;
-      grid-template-columns: 36px 1fr 140px 64px 190px;
+      grid-template-columns: 36px 1fr 140px 64px 240px;
       padding: 10px 20px;
       background: #010409;
       border-radius: 10px 10px 0 0;
@@ -189,7 +189,7 @@
     }
     .file-row {
       display: grid;
-      grid-template-columns: 36px 1fr 140px 64px 190px;
+      grid-template-columns: 36px 1fr 140px 64px 240px;
       padding: 13px 20px;
       border-bottom: 1px solid #21262d;
       align-items: center;
@@ -479,6 +479,30 @@
   </div>
 </div>
 
+<!-- ── Modify Modal ───────────────────────────────────────── -->
+<div id="modify-overlay" class="overlay hidden" onclick="if(event.target===this) closeModify()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modify-modal-title">Modify File</div>
+        <div class="modal-subtitle" id="modify-modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModify()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="warning-banner">
+        <strong>Note:</strong> The replacement file will be re-encrypted with a new key.
+        All users currently in the ACL will receive an updated wrapped key automatically.
+      </div>
+      <div class="form-group">
+        <label>Replacement file</label>
+        <input id="modify-file" type="file">
+      </div>
+      <button class="btn btn-primary btn-full" id="modify-btn" onclick="doModify()">Upload Replacement</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Toast rack ─────────────────────────────────────────── -->
 <div id="toast-rack"></div>
 
@@ -583,6 +607,7 @@ async function loadFiles() {
         <span class="file-id">#${f.file_id}</span>
         <div class="file-actions">
           <button class="btn btn-ghost btn-sm" onclick="doDownload(${f.file_id})">Download</button>
+          <button class="btn btn-ghost btn-sm" onclick="openModify(${f.file_id}, '${esc(f.filename)}')">Modify</button>
           ${isOwner
             ? `<button class="btn btn-blue btn-sm" onclick="openAcl(${f.file_id}, '${esc(f.filename)}')">Manage ACL</button>`
             : ''}
@@ -754,6 +779,50 @@ async function doRevoke(username) {
   } else {
     toast(d.error || 'Revoke failed.', 'err');
     if (btn) { btn.disabled = false; btn.textContent = 'Revoke'; }
+  }
+}
+
+// ─── Modify Modal ────────────────────────────────────────────
+let modifyFileId = null;
+
+function openModify(fileId, filename) {
+  modifyFileId = fileId;
+  document.getElementById('modify-modal-title').textContent = filename;
+  document.getElementById('modify-modal-subtitle').textContent = `File ID #${fileId}`;
+  document.getElementById('modify-file').value = '';
+  document.getElementById('modify-overlay').classList.remove('hidden');
+}
+
+function closeModify() {
+  document.getElementById('modify-overlay').classList.add('hidden');
+  modifyFileId = null;
+}
+
+async function doModify() {
+  const fileInput = document.getElementById('modify-file');
+  const btn = document.getElementById('modify-btn');
+
+  if (!fileInput.files[0]) { toast('Select a replacement file first.', 'err'); return; }
+
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Re-encrypting…';
+  toast('Re-encrypting & uploading…', 'info');
+
+  const r = await fetch(`/api/files/${modifyFileId}/modify`, {method: 'POST', body: fd});
+  const d = await r.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Upload Replacement';
+
+  if (r.ok) {
+    toast('File updated successfully.', 'ok');
+    closeModify();
+    loadFiles();
+  } else {
+    toast(d.error || 'Modify failed.', 'err');
   }
 }
 

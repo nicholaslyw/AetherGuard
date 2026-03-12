@@ -311,6 +311,50 @@ def revoke_access(file_id):
     return jsonify(resp.json()), resp.status_code
 
 
+# ─── Modify File ────────────────────────────────────────────
+
+
+@app.route("/api/files/<int:file_id>/modify", methods=["POST"])
+def modify_file(file_id):
+    err = _require_login()
+    if err:
+        return err
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file_data = request.files["file"].read()
+
+    # Fetch the current ACL so the new DEK can be wrapped for all existing users
+    acl_resp = requests.get(f"{SERVER_URL}/files/{file_id}/acl", auth=_auth())
+    if not acl_resp.ok:
+        return jsonify(acl_resp.json()), acl_resp.status_code
+
+    acl = acl_resp.json()["acl"]
+
+    # Re-encrypt the new content with a fresh DEK
+    new_ct, new_nonce, new_tag, new_dek = encrypt_file(file_data)
+
+    # Wrap the new DEK for every user currently in the ACL
+    wrapped_keys = {}
+    for entry in acl:
+        pub = _get_public_key(entry["username"])
+        if pub:
+            wrapped_keys[entry["username"]] = wrap_dek(new_dek, pub)
+
+    resp = requests.put(
+        f"{SERVER_URL}/files/{file_id}/update",
+        auth=_auth(),
+        json={
+            "encrypted_blob": base64.b64encode(new_ct).decode(),
+            "nonce": base64.b64encode(new_nonce).decode(),
+            "tag": base64.b64encode(new_tag).decode(),
+            "wrapped_keys": wrapped_keys,
+        },
+    )
+    return jsonify(resp.json()), resp.status_code
+
+
 # ─── Entry Point ────────────────────────────────────────────
 
 if __name__ == "__main__":

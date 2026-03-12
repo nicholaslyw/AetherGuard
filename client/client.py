@@ -204,7 +204,7 @@ def do_grant():
 
 
 def do_acl():
-    """Display the list of users who have access to a file (owner only)."""
+    """Display the list of users who have access to a file."""
     file_id = input("  File ID: ").strip()
 
     resp = requests.get(f"{SERVER_URL}/files/{file_id}/acl", auth=auth())
