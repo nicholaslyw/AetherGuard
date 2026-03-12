@@ -203,6 +203,27 @@ def do_grant():
     print(f"  Server: {resp.json()}")
 
 
+def do_acl():
+    """Display the list of users who have access to a file (owner only)."""
+    file_id = input("  File ID: ").strip()
+
+    resp = requests.get(f"{SERVER_URL}/files/{file_id}/acl", auth=auth())
+    if not resp.ok:
+        print(f"  Error: {resp.json()}")
+        return
+
+    acl = resp.json().get("acl", [])
+    if not acl:
+        print("  No users have access.")
+        return
+
+    print(f"\n  {'Username':<20} {'Role':<10}")
+    print("  " + "-" * 30)
+    for entry in acl:
+        role = "owner" if entry["username"] == current_user else "shared"
+        print(f"  {entry['username']:<20} {role:<10}")
+
+
 def do_revoke():
     file_id = input("  File ID: ").strip()
     target = input("  Username to revoke access: ").strip()
@@ -274,8 +295,9 @@ def main():
             print("  3. Download file")
             print("  4. Grant access")
             print("  5. Revoke access")
-            print("  6. Logout")
-            print("  7. Exit")
+            print("  6. View file ACL")
+            print("  7. Logout")
+            print("  8. Exit")
         else:
             print("  1. Register")
             print("  2. Login")
@@ -295,10 +317,12 @@ def main():
             elif choice == "5":
                 do_revoke()
             elif choice == "6":
+                do_acl()
+            elif choice == "7":
                 globals()["current_user"] = None
                 globals()["current_password"] = None
                 print("  Logged out.")
-            elif choice == "7":
+            elif choice == "8":
                 print("  Goodbye.")
                 sys.exit(0)
         else:
