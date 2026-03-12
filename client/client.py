@@ -25,7 +25,7 @@ current_password = None
 
 
 def auth():
-    """Return basic auth tuple."""
+    """Return HTTP Basic Auth credentials as a (username, password) tuple."""
     return (current_user, current_password)
 
 
@@ -96,7 +96,6 @@ def do_upload():
     print("  Encrypting file locally...")
     ciphertext, nonce, tag, dek = encrypt_file(file_data)
 
-    # Wrap the DEK for the owner
     owner_pub = get_public_key_for_user(current_user)
     if not owner_pub:
         return
@@ -190,7 +189,6 @@ def do_grant():
     private_key = load_private_key(current_user, current_password, KEYS_DIR)
     dek = unwrap_dek(data["wrapped_dek"], private_key)
 
-    # Wrap DEK for target user
     target_pub = get_public_key_for_user(target)
     if not target_pub:
         return
@@ -209,10 +207,52 @@ def do_revoke():
     file_id = input("  File ID: ").strip()
     target = input("  Username to revoke access: ").strip()
 
-    resp = requests.post(
-        f"{SERVER_URL}/files/{file_id}/revoke",
+    # Step 1: Download and decrypt the file
+    resp = requests.get(f"{SERVER_URL}/files/{file_id}/download", auth=auth())
+    if not resp.ok:
+        print(f"  Error: {resp.json()}")
+        return
+    data = resp.json()
+    private_key = load_private_key(current_user, current_password, KEYS_DIR)
+    dek = unwrap_dek(data["wrapped_dek"], private_key)
+    plaintext = decrypt_file(
+        base64.b64decode(data["encrypted_blob"]),
+        base64.b64decode(data["nonce"]),
+        base64.b64decode(data["tag"]),
+        dek,
+    )
+
+    # Step 2: Fetch the current ACL to get remaining users
+    acl_resp = requests.get(
+        f"{SERVER_URL}/files/{file_id}/acl", auth=auth()
+    )
+    if not acl_resp.ok:
+        print(f"  Error fetching ACL: {acl_resp.json()}")
+        return
+    remaining = [
+        u["username"]
+        for u in acl_resp.json()["acl"]
+        if u["username"] != target
+    ]
+
+    # Step 3: Re-encrypt with a new DEK, wrap for all remaining users
+    new_ct, new_nonce, new_tag, new_dek = encrypt_file(plaintext)
+
+    wrapped_keys = {}
+    for uname in remaining:
+        pub = get_public_key_for_user(uname)
+        if pub:
+            wrapped_keys[uname] = wrap_dek(new_dek, pub)
+
+    resp = requests.put(
+        f"{SERVER_URL}/files/{file_id}/update",
         auth=auth(),
-        json={"username": target},
+        json={
+            "encrypted_blob": base64.b64encode(new_ct).decode(),
+            "nonce": base64.b64encode(new_nonce).decode(),
+            "tag": base64.b64encode(new_tag).decode(),
+            "wrapped_keys": wrapped_keys,
+        },
     )
     print(f"  Server: {resp.json()}")
 

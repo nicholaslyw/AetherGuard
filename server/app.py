@@ -233,6 +233,48 @@ def download_file(file_id):
     }), 200
 
 
+# ─── List ACL (Owner Only) ──────────────────────────────────
+
+
+@app.route("/files/<int:file_id>/acl", methods=["GET"])
+def get_acl(file_id):
+    user = authenticate(request)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    conn = get_db()
+
+    file_info = conn.execute(
+        "SELECT * FROM files WHERE id = ? AND owner_id = ?",
+        (file_id, user["id"]),
+    ).fetchone()
+
+    if not file_info:
+        conn.close()
+        return jsonify({"error": "Not owner or file not found"}), 403
+
+    acl = conn.execute(
+        """
+        SELECT u.username, u.id AS user_id
+        FROM access_control ac
+        JOIN users u ON ac.user_id = u.id
+        WHERE ac.file_id = ?
+        ORDER BY u.username
+        """,
+        (file_id,),
+    ).fetchall()
+    conn.close()
+
+    return jsonify({
+        "file_id": file_id,
+        "filename": file_info["filename"],
+        "acl": [
+            {"username": a["username"], "user_id": a["user_id"]}
+            for a in acl
+        ],
+    }), 200
+
+
 # ─── Grant Access (Owner Only) ──────────────────────────────
 
 
@@ -378,7 +420,7 @@ def update_file(file_id):
         (nonce_b64, tag_b64, file_id),
     )
 
-    # Update all wrapped DEKs (new DEK = re-key)
+    # Replace all wrapped DEKs since the file has been re-encrypted with a new key
     cursor.execute(
         "DELETE FROM access_control WHERE file_id = ?", (file_id,)
     )
@@ -398,9 +440,6 @@ def update_file(file_id):
     conn.commit()
     conn.close()
     return jsonify({"message": "File updated"}), 200
-
-
-# ─── Start Server ───────────────────────────────────────────
 
 
 if __name__ == "__main__":

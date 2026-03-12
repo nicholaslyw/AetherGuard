@@ -71,6 +71,8 @@ python client.py
 
 ## Usage
 
+### CLI Client
+
 When the client starts you will see a menu. If you are not logged in:
 
 ```
@@ -97,7 +99,63 @@ Once logged in:
 
 **Download** — fetches the encrypted file and decrypts it locally using your private key. Saved to `client/downloads/`.
 
-**Grant / Revoke** — lets the file owner give or remove access for other registered users.
+**Grant / Revoke** — lets the file owner give or remove access for other registered users. Revoking re-encrypts the file with a fresh key so the removed user's copy is permanently invalidated.
+
+---
+
+### Web UI
+
+AetherGuard includes a browser-based interface for managing file access. It runs as a local server on your machine — all encryption and decryption still happens locally using your key files, so nothing sensitive ever leaves your machine.
+
+#### Setup
+
+Open a new terminal and navigate to the `web_ui` directory:
+
+```bash
+cd web_ui
+```
+
+Create and activate a virtual environment:
+
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+#### Run
+
+```bash
+python app.py
+```
+
+Then open **http://localhost:8080** in your browser.
+
+> The AetherGuard server must already be running (`docker-compose up server`) before starting the Web UI.
+
+#### Features
+
+**Sign in** — use the same username and password you registered with via the CLI. Your local private key file (`client/keys/<username>_private.pem`) must exist on the machine running the Web UI.
+
+**Upload** — select any file and optionally enter a comma-separated list of usernames to share with at upload time. The file is encrypted before it leaves your browser session.
+
+**Download** — click **Download** next to any file you have access to. It is decrypted locally and saved to your browser's downloads folder.
+
+**Manage ACL** *(owners only)* — click the **Manage ACL** button on any file you own to open the access control panel:
+
+- **View** the full list of users who currently have access.
+- **Grant** access to a new user by entering their username. The DEK is re-wrapped with their public key automatically.
+- **Revoke** a user's access with the **Revoke** button. The file is re-encrypted with a brand-new key and all remaining users receive an updated wrapped key — the removed user's copy is permanently invalidated.
 
 ---
 
@@ -106,7 +164,7 @@ Once logged in:
 ```
 AetherGuard/
 ├── server/
-│   ├── app.py            # Flask REST API (9 endpoints)
+│   ├── app.py            # Flask REST API
 │   ├── models.py         # SQLite schema
 │   ├── crypto_utils.py   # Password hashing (PBKDF2)
 │   ├── requirements.txt
@@ -116,6 +174,11 @@ AetherGuard/
 │   ├── crypto_utils.py   # Encryption/decryption logic
 │   ├── requirements.txt
 │   └── Dockerfile
+├── web_ui/
+│   ├── app.py            # Local Flask proxy (port 8080)
+│   ├── requirements.txt
+│   └── templates/
+│       └── index.html    # Single-page ACL management UI
 ├── docker-compose.yml
 └── README.md
 ```

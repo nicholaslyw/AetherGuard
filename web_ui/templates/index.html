@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherGuard</title>
+  <style>
+    /* ── Reset ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Utilities ───────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .text-muted { color: #8b949e; }
+    .text-sm { font-size: 12px; }
+    .fw-600 { font-weight: 600; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary  { background: #238636; color: #fff; border-color: #2ea043; }
+    .btn-primary:not(:disabled):hover { background: #2ea043; }
+    .btn-blue     { background: #1f6feb; color: #fff; border-color: #388bfd; }
+    .btn-blue:not(:disabled):hover { background: #388bfd; }
+    .btn-danger   { background: #da3633; color: #fff; border-color: #f85149; }
+    .btn-danger:not(:disabled):hover { background: #f85149; }
+    .btn-ghost    { background: transparent; color: #8b949e; border-color: #30363d; }
+    .btn-ghost:not(:disabled):hover { color: #c9d1d9; border-color: #8b949e; }
+    .btn-sm       { padding: 4px 10px; font-size: 12px; }
+    .btn-full     { width: 100%; justify-content: center; }
+
+    /* ── Forms ───────────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    input[type="text"],
+    input[type="password"],
+    input[type="file"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #388bfd; box-shadow: 0 0 0 3px rgba(56,139,253,0.15); }
+    input[type="file"] { padding: 6px 10px; cursor: pointer; }
+    input[type="file"]::-webkit-file-upload-button {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #c9d1d9;
+      font-size: 12px;
+      padding: 3px 10px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    /* ── Login Screen ─────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .login-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .login-logo .shield { font-size: 28px; }
+    .login-logo .brand { font-size: 22px; font-weight: 700; color: #58a6ff; letter-spacing: -0.5px; }
+    .login-tagline { font-size: 13px; color: #8b949e; margin-bottom: 28px; }
+    .login-error {
+      background: #3d1c1c;
+      border: 1px solid #f8514966;
+      border-radius: 6px;
+      color: #f85149;
+      font-size: 13px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .login-note { text-align: center; font-size: 12px; color: #8b949e; margin-top: 16px; padding-top: 16px; border-top: 1px solid #21262d; }
+
+    /* ── App Layout ──────────────────────────────────────── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0 24px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .header-brand .shield { font-size: 20px; }
+    .header-brand .name { font-size: 17px; font-weight: 700; color: #58a6ff; }
+    .header-brand .sep { color: #30363d; }
+    .header-brand .sub { font-size: 13px; color: #8b949e; }
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1f6feb22;
+      border: 1px solid #1f6feb55;
+      color: #58a6ff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* Main */
+    .main { max-width: 1080px; margin: 0 auto; padding: 32px 24px; flex: 1; }
+
+    /* ── Upload Card ─────────────────────────────────────── */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-header h2 { font-size: 15px; font-weight: 600; }
+    .card-body { padding: 20px; }
+    .upload-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .upload-row .form-group { flex: 1; min-width: 160px; margin-bottom: 0; }
+
+    /* ── File Table ──────────────────────────────────────── */
+    .table-header {
+      display: grid;
+      grid-template-columns: 36px 1fr 140px 64px 190px;
+      padding: 10px 20px;
+      background: #010409;
+      border-radius: 10px 10px 0 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #21262d;
+    }
+    .file-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 140px 64px 190px;
+      padding: 13px 20px;
+      border-bottom: 1px solid #21262d;
+      align-items: center;
+      transition: background 0.12s;
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: #1c2128; }
+    .file-icon { font-size: 18px; line-height: 1; }
+    .file-name { font-size: 14px; font-weight: 500; color: #e6edf3; word-break: break-all; }
+    .owner-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .owner-you { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb44; }
+    .owner-other { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+    .file-id { font-size: 12px; color: #8b949e; font-family: monospace; }
+    .file-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .empty-state { padding: 56px 20px; text-align: center; color: #8b949e; }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── ACL Modal ───────────────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-title { font-size: 15px; font-weight: 600; color: #e6edf3; }
+    .modal-subtitle { font-size: 12px; color: #8b949e; margin-top: 2px; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .modal-close:hover { background: #21262d; color: #c9d1d9; }
+    .modal-body { overflow-y: auto; padding: 20px; flex: 1; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8b949e;
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* User items in ACL */
+    .user-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 14px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .user-item:last-child { margin-bottom: 0; }
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #1f6feb33;
+      border: 1px solid #1f6feb44;
+      color: #58a6ff;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .user-avatar.owner-avatar { background: #23863633; border-color: #2ea04344; color: #3fb950; }
+    .user-info { flex: 1; margin-left: 10px; }
+    .user-info .uname { font-size: 14px; font-weight: 500; color: #e6edf3; }
+    .user-info .urole { font-size: 11px; color: #8b949e; margin-top: 1px; }
+    .acl-loading { color: #8b949e; font-size: 13px; padding: 8px 0; }
+    .acl-empty { color: #8b949e; font-size: 13px; }
+
+    /* Grant form */
+    .grant-row { display: flex; gap: 8px; }
+    .grant-row input { flex: 1; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid #21262d; margin: 20px 0; }
+
+    /* ── Toasts ──────────────────────────────────────────── */
+    #toast-rack {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      min-width: 240px;
+      max-width: 360px;
+      padding: 11px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: slide-in 0.2s ease;
+    }
+    .toast-ok  { background: #1c4a1f; color: #3fb950; border: 1px solid #2ea04366; }
+    .toast-err { background: #3d1c1c; color: #f85149; border: 1px solid #f8514966; }
+    .toast-info { background: #1a2a3d; color: #58a6ff; border: 1px solid #388bfd44; }
+    @keyframes slide-in { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Spinner ─────────────────────────────────────────── */
+    .spin {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: rotation 0.55s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes rotation { to { transform: rotate(360deg); } }
+
+    /* ── Warning banner ──────────────────────────────────── */
+    .warning-banner {
+      background: #2b1f0e;
+      border: 1px solid #bb800066;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #d29922;
+      margin-bottom: 20px;
+    }
+    .warning-banner strong { color: #e3b341; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login ──────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="brand">AetherGuard</span>
+    </div>
+    <p class="login-tagline">End-to-end encrypted file sharing</p>
+
+    <div id="login-error" class="login-error hidden"></div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input id="f-user" type="text" placeholder="your-username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="f-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In</button>
+    <p class="login-note">No account? Register via the CLI client first.</p>
+  </div>
+</div>
+
+<!-- ── App ────────────────────────────────────────────────── -->
+<div id="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <span class="name">AetherGuard</span>
+      <span class="sep">|</span>
+      <span class="sub">Access Control</span>
+    </div>
+    <div class="flex items-center gap-12">
+      <span class="user-chip"><span id="hdr-user"></span></span>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Upload Encrypted File</h2>
+      </div>
+      <div class="card-body">
+        <div class="upload-row">
+          <div class="form-group">
+            <label>File</label>
+            <input id="u-file" type="file">
+          </div>
+          <div class="form-group">
+            <label>Share with (comma-separated usernames)</label>
+            <input id="u-share" type="text" placeholder="alice, bob  — leave blank to keep private">
+          </div>
+          <button class="btn btn-primary" id="upload-btn" onclick="doUpload()">Upload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- File List -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Files</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadFiles()">Refresh</button>
+      </div>
+      <div class="table-header">
+        <span></span>
+        <span>Filename</span>
+        <span>Owner</span>
+        <span>ID</span>
+        <span style="text-align:right">Actions</span>
+      </div>
+      <div id="file-list">
+        <div class="empty-state">
+          <div class="icon">📂</div>
+          <p>Loading…</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── ACL Modal ──────────────────────────────────────────── -->
+<div id="acl-overlay" class="overlay hidden" onclick="if(event.target===this) closeAcl()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Access Control List</div>
+        <div class="modal-subtitle" id="modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeAcl()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Warning when about to revoke -->
+      <div id="revoke-warning" class="warning-banner hidden">
+        <strong>Note:</strong> Revoking access will re-encrypt the file with a new key.
+        All remaining users will receive an updated wrapped key automatically.
+      </div>
+
+      <div class="section-label">Users with access</div>
+      <div id="acl-users"><p class="acl-loading"><span class="spin"></span> Loading…</p></div>
+
+      <hr class="divider">
+
+      <div class="section-label">Grant access to a new user</div>
+      <div class="grant-row">
+        <input id="grant-user" type="text" placeholder="Enter username">
+        <button class="btn btn-blue" id="grant-btn" onclick="doGrant()">Grant</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast rack ─────────────────────────────────────────── -->
+<div id="toast-rack"></div>
+
+<script>
+'use strict';
+
+// ─── State ──────────────────────────────────────────────────
+let me = null;          // logged-in username
+let aclFileId = null;   // file ID open in the ACL modal
+
+// ─── Toast ──────────────────────────────────────────────────
+function toast(msg, type = 'ok', ms = 3500) {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-rack').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+// ─── HTML escape ────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ─── Auth ────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('f-user').value.trim();
+  const password = document.getElementById('f-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+
+  errEl.classList.add('hidden');
+  if (!username || !password) {
+    errEl.textContent = 'Please enter your username and password.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Signing in…';
+
+  const r = await fetch('/api/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password}),
+  });
+  const d = await r.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (r.ok) {
+    me = d.username;
+    showApp();
+    loadFiles();
+  } else {
+    errEl.textContent = d.error || 'Login failed.';
+    errEl.classList.remove('hidden');
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', {method: 'POST'});
+  me = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('f-user').value = '';
+  document.getElementById('f-pass').value = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('hdr-user').textContent = me;
+}
+
+// ─── File List ───────────────────────────────────────────────
+async function loadFiles() {
+  const container = document.getElementById('file-list');
+  container.innerHTML = '<div class="empty-state"><div class="icon"><span class="spin"></span></div><p>Loading…</p></div>';
+
+  const r = await fetch('/api/files');
+  if (!r.ok) { toast('Failed to load files', 'err'); return; }
+
+  const {files} = await r.json();
+  if (!files || files.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📂</div><p>No files yet. Upload one above.</p></div>';
+    return;
+  }
+
+  container.innerHTML = files.map(f => {
+    const isOwner = f.owner === me;
+    return `
+      <div class="file-row">
+        <span class="file-icon"></span>
+        <span class="file-name">${esc(f.filename)}</span>
+        <span>
+          <span class="owner-pill ${isOwner ? 'owner-you' : 'owner-other'}">
+            ${isOwner ? 'You' : esc(f.owner)}
+          </span>
+        </span>
+        <span class="file-id">#${f.file_id}</span>
+        <div class="file-actions">
+          <button class="btn btn-ghost btn-sm" onclick="doDownload(${f.file_id})">Download</button>
+          ${isOwner
+            ? `<button class="btn btn-blue btn-sm" onclick="openAcl(${f.file_id}, '${esc(f.filename)}')">Manage ACL</button>`
+            : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ─── Upload ──────────────────────────────────────────────────
+async function doUpload() {
+  const fileInput = document.getElementById('u-file');
+  const shareWith = document.getElementById('u-share').value.trim();
+  const btn = document.getElementById('upload-btn');
+
+  if (!fileInput.files[0]) { toast('Select a file first.', 'err'); return; }
+
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  if (shareWith) fd.append('share_with', shareWith);
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Encrypting…';
+  toast('Encrypting & uploading…', 'info');
+
+  const r = await fetch('/api/files/upload', {method: 'POST', body: fd});
+  const d = await r.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Upload';
+
+  if (r.ok) {
+    toast(`Uploaded — file ID #${d.file_id}`, 'ok');
+    fileInput.value = '';
+    document.getElementById('u-share').value = '';
+    loadFiles();
+  } else {
+    toast(d.error || 'Upload failed.', 'err');
+  }
+}
+
+// ─── Download ────────────────────────────────────────────────
+async function doDownload(fileId) {
+  toast('Decrypting…', 'info');
+  const r = await fetch(`/api/files/${fileId}/download`);
+
+  if (!r.ok) {
+    const d = await r.json();
+    toast(d.error || 'Download failed.', 'err');
+    return;
+  }
+
+  const blob = await r.blob();
+  const cd   = r.headers.get('Content-Disposition') || '';
+  const m    = cd.match(/filename="?([^"]+)"?/);
+  const name = m ? m[1] : `file_${fileId}`;
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Downloaded "${name}"`, 'ok');
+}
+
+// ─── ACL Modal ───────────────────────────────────────────────
+async function openAcl(fileId, filename) {
+  aclFileId = fileId;
+  document.getElementById('modal-title').textContent = filename;
+  document.getElementById('modal-subtitle').textContent = `File ID #${fileId}`;
+  document.getElementById('grant-user').value = '';
+  document.getElementById('revoke-warning').classList.add('hidden');
+  document.getElementById('acl-overlay').classList.remove('hidden');
+  await loadAcl();
+}
+
+function closeAcl() {
+  document.getElementById('acl-overlay').classList.add('hidden');
+  aclFileId = null;
+}
+
+async function loadAcl() {
+  const container = document.getElementById('acl-users');
+  container.innerHTML = '<p class="acl-loading"><span class="spin"></span> Loading…</p>';
+
+  const r = await fetch(`/api/files/${aclFileId}/acl`);
+  if (!r.ok) {
+    const d = await r.json();
+    container.innerHTML = `<p style="color:#f85149; font-size:13px;">${esc(d.error || 'Failed to load ACL')}</p>`;
+    return;
+  }
+
+  const {acl} = await r.json();
+  if (!acl || acl.length === 0) {
+    container.innerHTML = '<p class="acl-empty">No users have access (unexpected).</p>';
+    return;
+  }
+
+  container.innerHTML = acl.map(u => {
+    const isMe = u.username === me;
+    return `
+      <div class="user-item">
+        <div class="${isMe ? 'user-avatar owner-avatar' : 'user-avatar'}">${u.username[0].toUpperCase()}</div>
+        <div class="user-info">
+          <div class="uname">${esc(u.username)}</div>
+          <div class="urole">${isMe ? 'Owner — you' : 'Has access'}</div>
+        </div>
+        ${!isMe
+          ? `<button class="btn btn-danger btn-sm" onclick="confirmRevoke('${esc(u.username)}')">Revoke</button>`
+          : '<span class="text-muted text-sm" style="padding:4px 8px">Owner</span>'}
+      </div>`;
+  }).join('');
+}
+
+function confirmRevoke(username) {
+  document.getElementById('revoke-warning').classList.remove('hidden');
+  if (!confirm(`Revoke access for "${username}"?\n\nThis will re-encrypt the file with a new key — this may take a moment.`)) {
+    document.getElementById('revoke-warning').classList.add('hidden');
+    return;
+  }
+  doRevoke(username);
+}
+
+async function doGrant() {
+  const username = document.getElementById('grant-user').value.trim();
+  if (!username) { toast('Enter a username to grant access.', 'err'); return; }
+
+  const btn = document.getElementById('grant-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+  toast(`Granting access to ${username}…`, 'info');
+
+  const r = await fetch(`/api/files/${aclFileId}/grant`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username}),
+  });
+  const d = await r.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Grant';
+
+  if (r.ok) {
+    toast(`Access granted to ${username}`, 'ok');
+    document.getElementById('grant-user').value = '';
+    await loadAcl();
+    loadFiles();
+  } else {
+    toast(d.error || 'Grant failed.', 'err');
+  }
+}
+
+async function doRevoke(username) {
+  const btn = document.querySelector(`button[onclick="confirmRevoke('${username}')"]`);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
+  toast(`Revoking & re-encrypting for ${username}…`, 'info', 6000);
+
+  const r = await fetch(`/api/files/${aclFileId}/revoke`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username}),
+  });
+  const d = await r.json();
+
+  if (r.ok) {
+    toast(`Access revoked for ${username}`, 'ok');
+    document.getElementById('revoke-warning').classList.add('hidden');
+    await loadAcl();
+    loadFiles();
+  } else {
+    toast(d.error || 'Revoke failed.', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Revoke'; }
+  }
+}
+
+// ─── Bootstrap ───────────────────────────────────────────────
+(async () => {
+  const r = await fetch('/api/session');
+  const d = await r.json();
+  if (d.username) {
+    me = d.username;
+    showApp();
+    loadFiles();
+  }
+})();
+</script>
+</body>
+</html>
