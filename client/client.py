@@ -224,6 +224,64 @@ def do_acl():
         print(f"  {entry['username']:<20} {role:<10}")
 
 
+def do_modify():
+    """Allow any user with access to replace a file's content with a new version."""
+    file_id = input("  File ID to modify: ").strip()
+
+    # Verify access by downloading the file — fails with 403 if not in the ACL
+    print("  Checking access...")
+    resp = requests.get(
+        f"{SERVER_URL}/files/{file_id}/download", auth=auth()
+    )
+    if not resp.ok:
+        print(f"  Error: {resp.json()}")
+        return
+
+    print(f"  Access confirmed for file '{resp.json()['filename']}'.")
+
+    filepath = input("  Path to modified file: ").strip()
+    if not os.path.exists(filepath):
+        print("  File not found.")
+        return
+
+    with open(filepath, "rb") as f:
+        new_content = f.read()
+
+    # Fetch the current ACL so the new DEK can be wrapped for all existing users
+    acl_resp = requests.get(
+        f"{SERVER_URL}/files/{file_id}/acl", auth=auth()
+    )
+    if not acl_resp.ok:
+        print(f"  Error fetching ACL: {acl_resp.json()}")
+        return
+
+    acl = acl_resp.json()["acl"]
+
+    # Re-encrypt the new content with a fresh DEK
+    print("  Re-encrypting file with new key...")
+    new_ct, new_nonce, new_tag, new_dek = encrypt_file(new_content)
+
+    # Wrap the new DEK for every user currently in the ACL
+    wrapped_keys = {}
+    for entry in acl:
+        uname = entry["username"]
+        pub = get_public_key_for_user(uname)
+        if pub:
+            wrapped_keys[uname] = wrap_dek(new_dek, pub)
+
+    resp = requests.put(
+        f"{SERVER_URL}/files/{file_id}/update",
+        auth=auth(),
+        json={
+            "encrypted_blob": base64.b64encode(new_ct).decode(),
+            "nonce": base64.b64encode(new_nonce).decode(),
+            "tag": base64.b64encode(new_tag).decode(),
+            "wrapped_keys": wrapped_keys,
+        },
+    )
+    print(f"  Server: {resp.json()}")
+
+
 def do_revoke():
     file_id = input("  File ID: ").strip()
     target = input("  Username to revoke access: ").strip()
@@ -296,8 +354,9 @@ def main():
             print("  4. Grant access")
             print("  5. Revoke access")
             print("  6. View file ACL")
-            print("  7. Logout")
-            print("  8. Exit")
+            print("  7. Modify file")
+            print("  8. Logout")
+            print("  9. Exit")
         else:
             print("  1. Register")
             print("  2. Login")
@@ -319,10 +378,12 @@ def main():
             elif choice == "6":
                 do_acl()
             elif choice == "7":
+                do_modify()
+            elif choice == "8":
                 globals()["current_user"] = None
                 globals()["current_password"] = None
                 print("  Logged out.")
-            elif choice == "8":
+            elif choice == "9":
                 print("  Goodbye.")
                 sys.exit(0)
         else:

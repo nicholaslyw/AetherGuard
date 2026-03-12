@@ -89,8 +89,10 @@ Once logged in:
   3. Download file
   4. Grant access
   5. Revoke access
-  6. Logout
-  7. Exit
+  6. View file ACL
+  7. Modify file
+  8. Logout
+  9. Exit
 ```
 
 **Register** — creates an RSA-4096 key pair locally and registers your public key with the server.
@@ -101,61 +103,9 @@ Once logged in:
 
 **Grant / Revoke** — lets the file owner give or remove access for other registered users. Revoking re-encrypts the file with a fresh key so the removed user's copy is permanently invalidated.
 
----
+**View file ACL** — displays the list of users who currently have access to a file. Available to any user who has been granted access to that file.
 
-### Web UI
-
-AetherGuard includes a browser-based interface for managing file access. It runs as a local server on your machine — all encryption and decryption still happens locally using your key files, so nothing sensitive ever leaves your machine.
-
-#### Setup
-
-Open a new terminal and navigate to the `web_ui` directory:
-
-```bash
-cd web_ui
-```
-
-Create and activate a virtual environment:
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-#### Run
-
-```bash
-python app.py
-```
-
-Then open **http://localhost:8080** in your browser.
-
-> The AetherGuard server must already be running (`docker-compose up server`) before starting the Web UI.
-
-#### Features
-
-**Sign in** — use the same username and password you registered with via the CLI. Your local private key file (`client/keys/<username>_private.pem`) must exist on the machine running the Web UI.
-
-**Upload** — select any file and optionally enter a comma-separated list of usernames to share with at upload time. The file is encrypted before it leaves your browser session.
-
-**Download** — click **Download** next to any file you have access to. It is decrypted locally and saved to your browser's downloads folder.
-
-**Manage ACL** *(owners only)* — click the **Manage ACL** button on any file you own to open the access control panel:
-
-- **View** the full list of users who currently have access.
-- **Grant** access to a new user by entering their username. The DEK is re-wrapped with their public key automatically.
-- **Revoke** a user's access with the **Revoke** button. The file is re-encrypted with a brand-new key and all remaining users receive an updated wrapped key — the removed user's copy is permanently invalidated.
+**Modify file** — replaces the content of an existing file you have access to. Download and edit the file locally, then use this option to re-encrypt it with a new key and upload it as a replacement. All users currently in the ACL automatically receive an updated wrapped key.
 
 ---
 
@@ -174,11 +124,6 @@ AetherGuard/
 │   ├── crypto_utils.py   # Encryption/decryption logic
 │   ├── requirements.txt
 │   └── Dockerfile
-├── web_ui/
-│   ├── app.py            # Local Flask proxy (port 8080)
-│   ├── requirements.txt
-│   └── templates/
-│       └── index.html    # Single-page ACL management UI
 ├── docker-compose.yml
 └── README.md
 ```

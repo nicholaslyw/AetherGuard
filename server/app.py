@@ -233,7 +233,7 @@ def download_file(file_id):
     }), 200
 
 
-# ─── List ACL (Owner Only) ──────────────────────────────────
+# ─── List ACL (Any Authorized User) ────────────────────────
 
 
 @app.route("/files/<int:file_id>/acl", methods=["GET"])
@@ -244,14 +244,25 @@ def get_acl(file_id):
 
     conn = get_db()
 
-    file_info = conn.execute(
-        "SELECT * FROM files WHERE id = ? AND owner_id = ?",
+    # Allow any user who is in the ACL for this file, not just the owner.
+    # This is required so that non-owner users can retrieve the full user list
+    # when re-wrapping the DEK after a file modification.
+    access = conn.execute(
+        "SELECT 1 FROM access_control WHERE file_id = ? AND user_id = ?",
         (file_id, user["id"]),
+    ).fetchone()
+
+    if not access:
+        conn.close()
+        return jsonify({"error": "Access denied or file not found"}), 403
+
+    file_info = conn.execute(
+        "SELECT * FROM files WHERE id = ?", (file_id,)
     ).fetchone()
 
     if not file_info:
         conn.close()
-        return jsonify({"error": "Not owner or file not found"}), 403
+        return jsonify({"error": "File not found"}), 404
 
     acl = conn.execute(
         """
